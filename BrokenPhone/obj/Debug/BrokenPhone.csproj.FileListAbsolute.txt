@@ -1,0 +1,9 @@
+S:\סמסטר ה\תקשורת\BrokenPhone\BrokenPhone\bin\Debug\BrokenPhone.exe.config
+S:\סמסטר ה\תקשורת\BrokenPhone\BrokenPhone\bin\Debug\BrokenPhone.exe
+S:\סמסטר ה\תקשורת\BrokenPhone\BrokenPhone\bin\Debug\BrokenPhone.pdb
+S:\סמסטר ה\תקשורת\BrokenPhone\BrokenPhone\obj\Debug\BrokenPhone.csprojResolveAssemblyReference.cache
+S:\סמסטר ה\תקשורת\BrokenPhone\BrokenPhone\obj\Debug\BrokenPhone.exe
+S:\סמסטר ה\תקשורת\BrokenPhone\BrokenPhone\obj\Debug\BrokenPhone.pdb
+C:\Users\win7\Desktop\MM\סימסטר ה\תקשורת\BrokenPhone\BrokenPhone\bin\Debug\BrokenPhone.exe.config
+C:\Users\win7\Desktop\MM\סימסטר ה\תקשורת\BrokenPhone\BrokenPhone\obj\Debug\BrokenPhone.exe
+C:\Users\win7\Desktop\MM\סימסטר ה\תקשורת\BrokenPhone\BrokenPhone\obj\Debug\BrokenPhone.pdb
