@@ -18,7 +18,7 @@ namespace BrokenPhone.server
         private Client client;
         private bool hasFoundConnection;
         private byte[] udpBuffer;
-        private int randomPort;
+        private int tcpPort;
         private readonly string myID = "Networking17AMPM";
         private static readonly int udpPort = 6000;
 
@@ -26,7 +26,7 @@ namespace BrokenPhone.server
         {
             udpListener = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             tcpConnection = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            randomPort = findOpenPort();
+            tcpPort = ProgramServices.findOpenPort(6000,7000);
             hasFoundConnection = false;
         }
 
@@ -37,12 +37,14 @@ namespace BrokenPhone.server
 
         public void startListening()
         {
+            Console.WriteLine("Server starts listening in UDP...");
             udpListener.Bind(new IPEndPoint(IPAddress.Any, udpPort));
-            udpBuffer = new byte[1024];
-            EndPoint newClientEP = new IPEndPoint(IPAddress.Any, 0);
+            udpBuffer = new byte[20];
+            EndPoint newClientEP = new IPEndPoint(IPAddress.Any, 0);       
+            
             //new Thread(delegate()
             //{
-            //    while (true)
+            //    while (!hasFoundConnection)
             //    {
                     udpListener.BeginReceiveFrom(udpBuffer, 0, udpBuffer.Length, SocketFlags.None, ref newClientEP, DoReceiveFrom, udpListener);
             //    }
@@ -51,11 +53,14 @@ namespace BrokenPhone.server
 
         private void DoReceiveFrom(IAsyncResult ar)
         {
+            Console.WriteLine("Servers receives request...");
 
             //Get the received "Request" message.
             Socket recvSock = (Socket)ar.AsyncState;
             EndPoint clientEP = new IPEndPoint(IPAddress.Any, 0);
+
             int msgLen = recvSock.EndReceiveFrom(ar, ref clientEP);
+
             byte[] localMsg = new byte[msgLen];
             Array.Copy(udpBuffer, localMsg, msgLen);
 
@@ -64,45 +69,32 @@ namespace BrokenPhone.server
             udpListener.BeginReceiveFrom(udpBuffer, 0, udpBuffer.Length, SocketFlags.None, ref newClientEP, DoReceiveFrom, udpListener);
           
             //send "Offer" message back           
-            //IPEndPoint clientPoint = (IPEndPoint)recvSock.RemoteEndPoint;
             sendOffer(localMsg, clientEP);
         }
 
         private void sendOffer(byte[] localMsg, EndPoint clientPoint)
-        {          
+        {
+            Console.WriteLine("Server sends offer...");
+            
             // build "Offer" message
-            string recievedMessageStr = System.Text.Encoding.Default.GetString(localMsg);
-            string recievedMessageUniqNum = recievedMessageStr.Substring(0,recievedMessageStr.Length-1);
-            string toSendStr = myID + recievedMessageUniqNum + GetLocalIPAddress().ToString() + udpPort;
-            byte[] toSendByte = Encoding.ASCII.GetBytes(toSendStr);
+            // Create List of Bytes and add all the message we want to send to the list
+            // finally convert the List to Array (of bytes)
+            int uniqueNum = BitConverter.ToInt32(localMsg, 16);
+            List<byte> toSendByteAsList = new List<byte>();
+            toSendByteAsList.AddRange(Encoding.ASCII.GetBytes(myID).ToList()); 
+            toSendByteAsList.AddRange(BitConverter.GetBytes(uniqueNum).ToList());
+            string[] ipSpilittedByDots = ProgramServices.GetLocalIPAddress().ToString().Split('.');
+            foreach (string ipPart in ipSpilittedByDots)
+            {
+                toSendByteAsList.Add(byte.Parse(ipPart));
+            }
+            short shotrPort = Convert.ToInt16(tcpPort);
+            toSendByteAsList.AddRange(BitConverter.GetBytes(shotrPort).ToList());
 
             //send it
-            udpListener.SendTo(toSendByte, clientPoint);
-        }
+            Console.WriteLine("Server sends offer message to {0}", uniqueNum);
+            udpListener.SendTo(toSendByteAsList.ToArray(), clientPoint);
 
-
-        private int findOpenPort()
-        {
-            int myPort = udpPort;
-            bool alreadyInUse = true;
-            while (alreadyInUse && myPort<7000) {
-                myPort++;
-                alreadyInUse = (from p in System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveUdpListeners() where p.Port == myPort select p).Count() == 1;           
-            }
-            return myPort;
-        }
-
-        private IPAddress GetLocalIPAddress()
-        {
-            var host = Dns.GetHostEntry(Dns.GetHostName());
-            foreach (var ip in host.AddressList)
-            {
-                if (ip.AddressFamily == AddressFamily.InterNetwork)
-                {
-                    return ip;
-                }
-            }
-            throw new Exception("Local IP Address Not Found!");
         }
 
     }

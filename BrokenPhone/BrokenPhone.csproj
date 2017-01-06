@@ -43,8 +43,12 @@
   <ItemGroup>
     <Compile Include="client\Client.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="services\Message.cs" />
+    <Compile Include="services\OfferMessage.cs" />
+    <Compile Include="services\ProgramServices.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="server\Server.cs" />
+    <Compile Include="services\RequestMessage.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

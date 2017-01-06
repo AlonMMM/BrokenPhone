@@ -15,7 +15,6 @@ namespace BrokenPhone
         static Socket udpSocket;
         static void Main(string[] args)
         {
-            //TESST ETSETSETSETSTSTE
             Server server = new Server();
             Client client = new Client();
             server.startListening();
