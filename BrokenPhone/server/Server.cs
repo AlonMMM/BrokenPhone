@@ -17,23 +17,23 @@ namespace BrokenPhone.server
 
         private Socket udpListener;
         private Client client;
-        private bool hasFoundConnection;
+        private bool hasFoundTcpConnection;
         private byte[] udpBuffer;
         private int tcpPort;
         private readonly string myID = "Networking17AMPM";
         private static readonly int udpPort = 6000;
         private static readonly IPAddress localIP = ProgramServices.GetLocalIPAddress();
         private byte[] brokenPhoneMessage = new byte[1024];
-
         public static string data;
         public enum RX_mode { ON, OFF };
-        public RX_mode clientMode = RX_mode.OFF;
+        public RX_mode serverMode = RX_mode.OFF;
+
         public Server()
         {
             udpListener = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             tcpConnection = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             tcpPort = ProgramServices.findOpenPort(6000, 7000);
-            hasFoundConnection = false;
+            hasFoundTcpConnection = false;
         }
 
         public void setClient(Client client)
@@ -54,7 +54,6 @@ namespace BrokenPhone.server
             //start listning UDP
             EndPoint newClientEP = new IPEndPoint(IPAddress.Any, 6000);
             udpListener.BeginReceiveFrom(udpBuffer, 0, udpBuffer.Length, SocketFlags.None, ref newClientEP, DoReceiveFrom, udpListener);
-
         }
 
         //Listening for client connection in TCP
@@ -74,17 +73,13 @@ namespace BrokenPhone.server
                     // Thread is suspended while waiting for an incoming connection from client
                     Socket handler = tcpConnection.Accept();
                     data = null;
+                    hasFoundTcpConnection = true;
+                    serverMode = RX_mode.ON;
 
                     // An incoming connection needs to be processed.
                     handler.Receive(brokenPhoneMessage);
-                    data = Encoding.ASCII.GetString(brokenPhoneMessage);
-
-                    // Show the data on the console.
-                    Console.WriteLine("SERVER: Text received: {0}", data);
-
-                    // Echo the data back to the client.
-                    byte[] msg = Encoding.ASCII.GetBytes(data);
-                    handler.Send(msg);
+                    data = Encoding.ASCII.GetString(brokenPhoneMessage);            
+                    client.handleMessageFromServerModule(changeOneCharacter(data));
                     handler.Shutdown(SocketShutdown.Both);
                     handler.Close();
                 }
@@ -93,6 +88,20 @@ namespace BrokenPhone.server
             {
                 Console.WriteLine(e.ToString());
             }
+        }
+
+        // Changes one character in the message
+        private string changeOneCharacter(string msg)
+        {
+            string stringMessage = msg.Trim();
+            Random random = new Random();
+            int randomIndex = random.Next(stringMessage.Length);
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            string randomChar = new string(Enumerable.Repeat(chars, 1)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
+            char[] charArrayMessage = stringMessage.ToCharArray();
+            charArrayMessage[randomIndex] = Convert.ToChar(randomChar);
+            return new string(charArrayMessage);
         }
 
         private void DoReceiveFrom(IAsyncResult ar)

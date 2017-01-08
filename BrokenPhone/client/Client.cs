@@ -40,6 +40,19 @@ namespace BrokenPhone.client
             this.server = server;
         }
 
+        public void handleMessageFromServerModule(string message)
+        {
+            if (clientMode == TX_mode.OFF)
+            {
+                // If the client is not connected, print message to screen
+                Console.WriteLine(message);
+            }
+            else
+            {
+                clientMessage = message;
+            }
+        }
+
         public void broadcost()
         {
             Console.WriteLine("CLIENT: starts broadcasting in UDP...");
@@ -51,9 +64,8 @@ namespace BrokenPhone.client
             //Broadcast "Request" messages
             new Thread(delegate ()
             {
-                while (!hasFoundConnection)
+                while (!hasFoundConnection && server.serverMode==Server.RX_mode.OFF)
                 {
-
                     Console.WriteLine("CLIENT: UDP Broadcast message number {0}", broadCounter);
                     udpBroadcast.SendTo(messageAsByteArray, ipEndPoint);
                     broadCounter++;
@@ -109,17 +121,25 @@ namespace BrokenPhone.client
             Console.WriteLine("Connecting (TCP) to server----\nIP: {0} ,  Port: {1}...", ip, port);
             tcpConnection.Connect(ip, port);
             tcpConnection.RemoteEndPoint.ToString();
+            string messageFromUser = "";
+            if(server.serverMode == Server.RX_mode.OFF)
+            {
+                // Server module is NOT connected
+                Console.WriteLine("Please enter a message since my server module did not find a client: ");
+                messageFromUser = Console.ReadLine();
+            }
 
             // Encode the data string into a byte array.
-            byte[] msg = Encoding.ASCII.GetBytes("This is a test<EOF>");
+            string messageForTcpConnection = messageFromUser != "" ? messageFromUser : clientMessage;
+            byte[] msg = Encoding.ASCII.GetBytes(messageForTcpConnection);
 
             // Send the data through the socket.
             int bytesSent = tcpConnection.Send(msg);
 
-            // Receive the response from the remote device.
-            byte[] recieveFromServer = new byte[1024];
-            int bytesRec = tcpConnection.Receive(recieveFromServer);
-            Console.WriteLine("Echoed test = {0}", Encoding.ASCII.GetString(recieveFromServer, 0, bytesRec));
+            //// Receive the response from the remote device.
+            //byte[] recieveFromServer = new byte[1024];
+            //int bytesRec = tcpConnection.Receive(recieveFromServer);
+            //Console.WriteLine("Echoed test = {0}", Encoding.ASCII.GetString(recieveFromServer, 0, bytesRec));
 
             // Release the socket.
             tcpConnection.Shutdown(SocketShutdown.Both);
@@ -128,10 +148,6 @@ namespace BrokenPhone.client
             return true;
         }
 
-        private string[] extractMessage(byte[] localMsg)
-        {
-            throw new NotImplementedException();
-        }
 
         //Create "Request" message
         private byte[] createByteMessage()

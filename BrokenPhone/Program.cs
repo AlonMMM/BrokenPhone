@@ -15,6 +15,8 @@ namespace BrokenPhone
         static Socket udpSocket;
         static void Main(string[] args)
         {
+            //testRandomChar();
+
             Server server = new Server();
             Client client = new Client();
             server.setClient(client);
@@ -48,6 +50,20 @@ namespace BrokenPhone
                 }
             }
             throw new Exception("Local IP Address Not Found!");
+        }
+
+        private static void testRandomChar()
+        {
+                Random random = new Random();
+                const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+                string randomChar = new string(Enumerable.Repeat(chars, 1)
+                  .Select(s => s[random.Next(s.Length)]).ToArray());
+                string stringMessage = "hello";
+                int randomIndex = random.Next(stringMessage.Length);
+                char[] charArrayMessage = stringMessage.ToCharArray();
+                charArrayMessage[randomIndex] = Convert.ToChar(randomChar);
+                string changedString = new string(charArrayMessage);
+                Console.WriteLine(changedString);
         }
     }
 }
