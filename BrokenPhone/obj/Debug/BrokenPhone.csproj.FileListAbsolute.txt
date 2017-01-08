@@ -13,3 +13,9 @@ C:\Users\win7\Desktop\BrockenPhone\BrokenPhone\obj\Debug\BrokenPhone.csprojResol
 C:\Users\win7\Desktop\MM\סימסטר ה\תקשורת\BrokenPhone\BrokenPhone\bin\Debug\BrokenPhone.exe.config
 C:\Users\win7\Desktop\MM\סימסטר ה\תקשורת\BrokenPhone\BrokenPhone\obj\Debug\BrokenPhone.exe
 C:\Users\win7\Desktop\MM\סימסטר ה\תקשורת\BrokenPhone\BrokenPhone\obj\Debug\BrokenPhone.pdb
+C:\Users\win7\Desktop\gitProjects\BrokenPhone\BrokenPhone\bin\Debug\BrokenPhone.exe.config
+C:\Users\win7\Desktop\gitProjects\BrokenPhone\BrokenPhone\obj\Debug\BrokenPhone.exe
+C:\Users\win7\Desktop\gitProjects\BrokenPhone\BrokenPhone\obj\Debug\BrokenPhone.pdb
+C:\Users\win7\Desktop\gitProjects\BrokenPhone\BrokenPhone\obj\Debug\BrokenPhone.csprojResolveAssemblyReference.cache
+C:\Users\win7\Desktop\gitProjects\BrokenPhone\BrokenPhone\bin\Debug\BrokenPhone.exe
+C:\Users\win7\Desktop\gitProjects\BrokenPhone\BrokenPhone\bin\Debug\BrokenPhone.pdb

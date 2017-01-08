@@ -23,6 +23,8 @@ namespace BrokenPhone.client
         private readonly string myID = "Networking17AMPM";
         private Mutex getOfferMessageMutex;
 
+        public enum TX_mode { ON, OFF };
+        public TX_mode clientMode = TX_mode.OFF;
         public Client()
         {
             udpBroadcast = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
@@ -71,20 +73,21 @@ namespace BrokenPhone.client
                     OfferMessage offerMessage = new OfferMessage(localMsg);
                     Console.WriteLine("Received offer from: {0}, unique number: {1}, IP: {2}, Port: {3}", offerMessage.Networking17, offerMessage.UniqueNumber, offerMessage.Ip, offerMessage.Port);
 
-                    //Make TCP connection
-
                     
-
                     //Stop listening in UDP
                     Socket recvSock = (Socket)ar.AsyncState;
                     EndPoint serverEP = new IPEndPoint(IPAddress.Any, 0);
                     recvSock.EndReceiveFrom(ar, ref serverEP);
 
-                    if (!connectTCP(serverEP))
+
+                    //Make TCP connection
+                    
+                    if (!connectTCP(offerMessage.Ip, offerMessage.Port))
                     {
                         throw new Exception("The server is busy or not available... ");
                     }
                     hasFoundConnection = true;
+                    clientMode = TX_mode.ON;
                     
                 }
                 catch (Exception expection)
@@ -99,13 +102,28 @@ namespace BrokenPhone.client
             }
         }
 
-        private bool connectTCP(EndPoint serverEP)
+        private bool connectTCP(string ip,int port) 
         {
 
-            Console.WriteLine("Connecting to server----\nIP:{0} ,  Port:{1}...",((IPEndPoint)serverEP).Address,((IPEndPoint)serverEP).Port);
+            Console.WriteLine("Connecting to server----\nIP:{0} ,  Port:{1}...",ip,port);
+            tcpConnection.Connect(ip, port);
+            tcpConnection.RemoteEndPoint.ToString();
 
+           // Encode the data string into a byte array.
+           byte[] msg = Encoding.ASCII.GetBytes("This is a test<EOF>");
 
+           // Send the data through the socket.
+           int bytesSent = tcpConnection.Send(msg);
 
+           // Receive the response from the remote device.
+           byte[] recieveFromServer = new byte[1024];
+           int bytesRec = tcpConnection.Receive(recieveFromServer);
+           Console.WriteLine("Echoed test = {0}",
+               Encoding.ASCII.GetString(recieveFromServer, 0, bytesRec));
+
+           // Release the socket.
+           tcpConnection.Shutdown(SocketShutdown.Both);
+           tcpConnection.Close();
             Console.WriteLine("Connection was made");
             return true;
         }
