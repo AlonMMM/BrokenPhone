@@ -23,7 +23,7 @@ namespace BrokenPhone.server
         private readonly string myID = "Networking17AMPM";
         private static readonly int udpPort = 6000;
         private static readonly IPAddress localIP = ProgramServices.GetLocalIPAddress();
-        private byte[] brokenPhoneMessage = new Byte[1024];
+        private byte[] brokenPhoneMessage = new byte[1024];
 
         public static string data;
         public enum RX_mode { ON, OFF };
@@ -32,7 +32,7 @@ namespace BrokenPhone.server
         {
             udpListener = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             tcpConnection = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            tcpPort = ProgramServices.findOpenPort(6000,7000);
+            tcpPort = ProgramServices.findOpenPort(6000, 7000);
             hasFoundConnection = false;
         }
 
@@ -43,70 +43,61 @@ namespace BrokenPhone.server
 
         public void startListening()
         {
-            Console.WriteLine("Server starts listening in UDP...");
+            Console.WriteLine("SERVER: starts listening in UDP...");
             udpListener.Bind(new IPEndPoint(IPAddress.Any, udpPort));
             udpBuffer = new byte[20];
 
             //start listning TCP
-            listniAndHandleTCPconnection();
+            Thread tcpKeepAliveThread = new Thread(listenAndHandleTCPconnection);
+            tcpKeepAliveThread.Start();
+
             //start listning UDP
-            EndPoint newClientEP = new IPEndPoint(IPAddress.Any, 6000);       
+            EndPoint newClientEP = new IPEndPoint(IPAddress.Any, 6000);
             udpListener.BeginReceiveFrom(udpBuffer, 0, udpBuffer.Length, SocketFlags.None, ref newClientEP, DoReceiveFrom, udpListener);
-                    
+
         }
 
-        private void listniAndHandleTCPconnection()
-        {
-
-            IPEndPoint ipEndPoint = new IPEndPoint(localIP, 6001);
-   
-            tcpConnection.Bind(ipEndPoint);
-
-            Console.WriteLine("TCP server start Listing for connection...");
+        //Listening for client connection in TCP
+        private void listenAndHandleTCPconnection()
+        {     
+            IPEndPoint ipEndPoint = new IPEndPoint(localIP, tcpPort);
+            Console.WriteLine("SERVER: start Listing for TCP connection...");
             try
             {
                 tcpConnection.Bind(ipEndPoint);
                 tcpConnection.Listen(1);
 
-                // Start listening for connections.
+                // Starts listening for TCP connections.
                 while (true)
                 {
-                    Console.WriteLine("Waiting for a connection...");
-                    // Program is suspended while waiting for an incoming connection.
+                    Console.WriteLine("SERVER: Waiting for a TCP connection...");
+                    // Thread is suspended while waiting for an incoming connection from client
                     Socket handler = tcpConnection.Accept();
                     data = null;
 
                     // An incoming connection needs to be processed.
                     handler.Receive(brokenPhoneMessage);
                     data = Encoding.ASCII.GetString(brokenPhoneMessage);
-                   
-                    
 
                     // Show the data on the console.
-                    Console.WriteLine("Text received : {0}", data);
+                    Console.WriteLine("SERVER: Text received: {0}", data);
 
                     // Echo the data back to the client.
                     byte[] msg = Encoding.ASCII.GetBytes(data);
-
                     handler.Send(msg);
                     handler.Shutdown(SocketShutdown.Both);
                     handler.Close();
                 }
-
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.ToString());
             }
-
-           
         }
-
-        
 
         private void DoReceiveFrom(IAsyncResult ar)
         {
-            Console.WriteLine("Servers receives request...");
+            Console.WriteLine("SERVER: receives request...");
 
             //Get the received "Request" message.
             Socket recvSock = (Socket)ar.AsyncState;
@@ -120,21 +111,21 @@ namespace BrokenPhone.server
             //start listening for a new "Request" message
             EndPoint newClientEP = new IPEndPoint(IPAddress.Any, 0);
             udpListener.BeginReceiveFrom(udpBuffer, 0, udpBuffer.Length, SocketFlags.None, ref newClientEP, DoReceiveFrom, udpListener);
-          
+
             //send "Offer" message back           
             sendOffer(localMsg, clientEP);
         }
 
         private void sendOffer(byte[] localMsg, EndPoint clientPoint)
         {
-            Console.WriteLine("Server sends offer...");
-            
+            Console.WriteLine("SERVER: sends offer...");
+
             // build "Offer" message
             // Create List of Bytes and add all the message we want to send to the list
             // finally convert the List to Array (of bytes)
             int uniqueNum = BitConverter.ToInt32(localMsg, 16);
             List<byte> toSendByteAsList = new List<byte>();
-            toSendByteAsList.AddRange(Encoding.ASCII.GetBytes(myID).ToList()); 
+            toSendByteAsList.AddRange(Encoding.ASCII.GetBytes(myID).ToList());
             toSendByteAsList.AddRange(BitConverter.GetBytes(uniqueNum).ToList());
             string[] ipSpilittedByDots = ProgramServices.GetLocalIPAddress().ToString().Split('.');
             foreach (string ipPart in ipSpilittedByDots)
@@ -145,10 +136,11 @@ namespace BrokenPhone.server
             toSendByteAsList.AddRange(BitConverter.GetBytes(shotrPort).ToList());
 
             //send it
-            Console.WriteLine("Server sends offer message to {0}", uniqueNum);
+            Console.WriteLine("SERVER: sends offer message to {0}", uniqueNum);
             udpListener.SendTo(toSendByteAsList.ToArray(), clientPoint);
 
         }
+
 
     }
 }

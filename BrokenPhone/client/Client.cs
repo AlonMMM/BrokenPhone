@@ -21,34 +21,40 @@ namespace BrokenPhone.client
         private byte[] udpBuffer;
         private int port;
         private readonly string myID = "Networking17AMPM";
-        private Mutex getOfferMessageMutex;
+        private string clientMessage;
 
         public enum TX_mode { ON, OFF };
         public TX_mode clientMode = TX_mode.OFF;
+
         public Client()
         {
             udpBroadcast = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             tcpConnection = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             hasFoundConnection = false;
             udpBuffer = new byte[26];
-            getOfferMessageMutex = new Mutex();
+        }
+
+        //inject the server to the client
+        public void setServer(Server server)
+        {
+            this.server = server;
         }
 
         public void broadcost()
         {
-            Console.WriteLine("Client starts broadcasting...");
+            Console.WriteLine("CLIENT: starts broadcasting in UDP...");
             udpBroadcast.EnableBroadcast = true;
             byte[] messageAsByteArray = createByteMessage();
             IPEndPoint ipEndPoint = new IPEndPoint(IPAddress.Broadcast, udpPort);
-            udpBroadcast.Bind(new IPEndPoint(ProgramServices.GetLocalIPAddress(), ProgramServices.findOpenPort(5000,6000)));
+            udpBroadcast.Bind(new IPEndPoint(ProgramServices.GetLocalIPAddress(), ProgramServices.findOpenPort(5000, 6000)));
             int broadCounter = 1;
             //Broadcast "Request" messages
-            new Thread(delegate()
+            new Thread(delegate ()
             {
                 while (!hasFoundConnection)
                 {
-                    
-                    Console.WriteLine("Broadcast message number {0}", broadCounter);
+
+                    Console.WriteLine("CLIENT: UDP Broadcast message number {0}", broadCounter);
                     udpBroadcast.SendTo(messageAsByteArray, ipEndPoint);
                     broadCounter++;
                     Thread.Sleep(1000);
@@ -64,66 +70,60 @@ namespace BrokenPhone.client
         {
             if (!hasFoundConnection)
             {
-                Console.WriteLine("Client received offer...");
+                Console.WriteLine("CLIENT: received offer in UDP... ");
                 try
                 {
                     //Get the received "offer" message.
                     byte[] localMsg = new byte[26];
                     Array.Copy(udpBuffer, localMsg, 26);
                     OfferMessage offerMessage = new OfferMessage(localMsg);
-                    Console.WriteLine("Received offer from: {0}, unique number: {1}, IP: {2}, Port: {3}", offerMessage.Networking17, offerMessage.UniqueNumber, offerMessage.Ip, offerMessage.Port);
+                    Console.WriteLine("CLIENT: Received offer from: {0}, unique number: {1}, IP: {2}, Port: {3}", offerMessage.Networking17, offerMessage.UniqueNumber, offerMessage.Ip, offerMessage.Port);
 
-                    
                     //Stop listening in UDP
                     Socket recvSock = (Socket)ar.AsyncState;
                     EndPoint serverEP = new IPEndPoint(IPAddress.Any, 0);
                     recvSock.EndReceiveFrom(ar, ref serverEP);
 
-
                     //Make TCP connection
-                    
-                    if (!connectTCP(offerMessage.Ip, offerMessage.Port))
+                    if (!connectTCP(offerMessage.Ip, offerMessage.Port, clientMessage))
                     {
-                        throw new Exception("The server is busy or not available... ");
+                        throw new Exception("CLIENT: The server is busy or not available... ");
                     }
                     hasFoundConnection = true;
                     clientMode = TX_mode.ON;
-                    
                 }
                 catch (Exception expection)
                 {
-                    Console.WriteLine("Could not connect to TCP" + expection.Message);
+                    Console.WriteLine("CLIENT: Could not connect to TCP" + expection.Message);
 
                     //start listing again
-                    Console.WriteLine("Start listaning again..");
+                    Console.WriteLine("CLIENT: Start listaning again..");
                     EndPoint newClientEP = new IPEndPoint(IPAddress.Any, 0);
                     udpBroadcast.BeginReceiveFrom(udpBuffer, 0, udpBuffer.Length, SocketFlags.None, ref newClientEP, getOfferMessage, udpBroadcast);
                 }
             }
         }
 
-        private bool connectTCP(string ip,int port) 
+        private bool connectTCP(string ip, int port, string message)
         {
-
-            Console.WriteLine("Connecting to server----\nIP:{0} ,  Port:{1}...",ip,port);
+            Console.WriteLine("Connecting (TCP) to server----\nIP: {0} ,  Port: {1}...", ip, port);
             tcpConnection.Connect(ip, port);
             tcpConnection.RemoteEndPoint.ToString();
 
-           // Encode the data string into a byte array.
-           byte[] msg = Encoding.ASCII.GetBytes("This is a test<EOF>");
+            // Encode the data string into a byte array.
+            byte[] msg = Encoding.ASCII.GetBytes("This is a test<EOF>");
 
-           // Send the data through the socket.
-           int bytesSent = tcpConnection.Send(msg);
+            // Send the data through the socket.
+            int bytesSent = tcpConnection.Send(msg);
 
-           // Receive the response from the remote device.
-           byte[] recieveFromServer = new byte[1024];
-           int bytesRec = tcpConnection.Receive(recieveFromServer);
-           Console.WriteLine("Echoed test = {0}",
-               Encoding.ASCII.GetString(recieveFromServer, 0, bytesRec));
+            // Receive the response from the remote device.
+            byte[] recieveFromServer = new byte[1024];
+            int bytesRec = tcpConnection.Receive(recieveFromServer);
+            Console.WriteLine("Echoed test = {0}", Encoding.ASCII.GetString(recieveFromServer, 0, bytesRec));
 
-           // Release the socket.
-           tcpConnection.Shutdown(SocketShutdown.Both);
-           tcpConnection.Close();
+            // Release the socket.
+            tcpConnection.Shutdown(SocketShutdown.Both);
+            tcpConnection.Close();
             Console.WriteLine("Connection was made");
             return true;
         }
