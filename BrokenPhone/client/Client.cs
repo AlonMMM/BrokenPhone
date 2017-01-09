@@ -21,7 +21,9 @@ namespace BrokenPhone.client
         private byte[] udpBuffer;
         private int port;
         private readonly string myID = "Networking17AMPM";
-        private string clientMessage;
+        private string clientMessage="00000000000000000000000000000000000000000000000000000000000000000000000";
+        private string serverName = "CLIENT: I'm connected to server named: ";
+
 
         public enum TX_mode { ON, OFF };
         public TX_mode clientMode = TX_mode.OFF;
@@ -45,17 +47,17 @@ namespace BrokenPhone.client
             if (clientMode == TX_mode.OFF)
             {
                 // If the client is not connected, print message to screen
-                Console.WriteLine(message);
+                ProgramServices.log(message);
             }
             else
             {
-                clientMessage = changeOneCharacter(message);
+                clientMessage = changeOneCharacter(message).Trim();
             }
         }
 
         public void broadcost()
         {
-            Console.WriteLine("CLIENT: starts broadcasting in UDP...");
+            ProgramServices.log("CLIENT: starts broadcasting in UDP...");
             udpBroadcast.EnableBroadcast = true;
             byte[] messageAsByteArray = createByteMessage();
             IPEndPoint ipEndPoint = new IPEndPoint(IPAddress.Broadcast, udpPort);
@@ -67,7 +69,7 @@ namespace BrokenPhone.client
                 while (!hasFoundConnection && server.serverMode==Server.RX_mode.OFF)
                 {
                     // TO_DO: ADD GLOBAL MUTEX (?)
-                    Console.WriteLine("CLIENT: UDP Broadcast message number {0}", broadCounter);
+                    ProgramServices.log(string.Format("CLIENT: UDP Broadcast message number {0}", broadCounter));
                     udpBroadcast.SendTo(messageAsByteArray, ipEndPoint);
                     broadCounter++;
                     Thread.Sleep(1000);
@@ -83,14 +85,14 @@ namespace BrokenPhone.client
         {
             if (!hasFoundConnection)
             {
-                Console.WriteLine("CLIENT: received offer in UDP... ");
+                ProgramServices.log("CLIENT: received offer in UDP... ");
                 try
                 {
                     //Get the received "offer" message.
                     byte[] localMsg = new byte[26];
                     Array.Copy(udpBuffer, localMsg, 26);
                     OfferMessage offerMessage = new OfferMessage(localMsg);
-                    Console.WriteLine("CLIENT: Received offer from: {0}, unique number: {1}, IP: {2}, Port: {3}", offerMessage.Networking17, offerMessage.UniqueNumber, offerMessage.Ip, offerMessage.Port);
+                    ProgramServices.log(string.Format("CLIENT: Received offer from: {0}, unique number: {1}, IP: {2}, Port: {3}", offerMessage.Networking17, offerMessage.UniqueNumber, offerMessage.Ip, offerMessage.Port));
 
                     //Stop listening in UDP
                     Socket recvSock = (Socket)ar.AsyncState;
@@ -98,7 +100,7 @@ namespace BrokenPhone.client
                     recvSock.EndReceiveFrom(ar, ref serverEP);
 
                     //Make TCP connection
-                    if (!connectTCP(offerMessage.Ip, offerMessage.Port))
+                    if (!connectTCP(offerMessage))
                     {
                         throw new Exception("CLIENT: The server is busy or not available... ");
                     }
@@ -106,22 +108,23 @@ namespace BrokenPhone.client
                 }
                 catch (Exception expection)
                 {
-                    Console.WriteLine("CLIENT: Could not connect to TCP" + expection.Message);
+                    ProgramServices.log("CLIENT: Could not connect to TCP" + expection.Message);
 
                     //start listing again
-                    Console.WriteLine("CLIENT: Start listaning again..");
+                    ProgramServices.log("CLIENT: Start listaning again..");
                     EndPoint newClientEP = new IPEndPoint(IPAddress.Any, 0);
                     udpBroadcast.BeginReceiveFrom(udpBuffer, 0, udpBuffer.Length, SocketFlags.None, ref newClientEP, getOfferMessage, udpBroadcast);
                 }
             }
         }
 
-        private bool connectTCP(string ip, int port)
+        private bool connectTCP(OfferMessage msg)
         {
-            Console.WriteLine("Connecting (TCP) to server----\nIP: {0} ,  Port: {1}...", ip, port);
-            tcpConnection.Connect(ip, port);
+            ProgramServices.log(string.Format("CLIENT: Connecting (TCP) to server----\nName: {0} IP: {1} ,  Port: {2}...", msg.Networking17, msg.Ip, msg.Port));
+            tcpConnection.Connect(msg.Ip, msg.Port);
             hasFoundConnection = true;
             clientMode = TX_mode.ON;
+            serverName = serverName + msg.Networking17;
             //tcpConnection.RemoteEndPoint.ToString();
 
             Thread sendMessageThred = new Thread(sendMessageToRemoteServer);
@@ -134,11 +137,12 @@ namespace BrokenPhone.client
         {
             while (tcpConnection.Connected)
             {
+                ProgramServices.log(serverName);
                 string messageFromUser = "";
                 if (server.serverMode == Server.RX_mode.OFF)
                 {
                     // Server module is NOT connected
-                    Console.WriteLine("Please enter a message since my server module did not find a client: ");
+                    ProgramServices.log("Please enter a message since my server module did not find a client: ");
                     messageFromUser = Console.ReadLine();
                 }
 
@@ -147,8 +151,11 @@ namespace BrokenPhone.client
                 byte[] msg = Encoding.ASCII.GetBytes(messageForTcpConnection);
 
                 // Send the data through the socket.
-                int bytesSent = tcpConnection.Send(msg);
+                int bytesSent = tcpConnection.Send(ProgramServices.cleanUnusedBytes(msg));
+                ProgramServices.log(clientMessage);
+                Thread.Sleep(200);
 
+            
             }
                 // Release the socket.
                 tcpConnection.Shutdown(SocketShutdown.Both);
@@ -161,9 +168,7 @@ namespace BrokenPhone.client
         {
             List<byte> messageByteList = new List<byte>();
             messageByteList.AddRange(Encoding.ASCII.GetBytes(myID).ToList());
-            Random random = new Random();
-            int randomNumber = random.Next();
-            messageByteList.AddRange(BitConverter.GetBytes(randomNumber).ToList());
+            messageByteList.AddRange(BitConverter.GetBytes(ProgramServices.uniqueNumber).ToList());
             return messageByteList.ToArray();
         }
 
