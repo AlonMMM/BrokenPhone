@@ -118,7 +118,7 @@ namespace BrokenPhone.client
 
         private bool connectTCP(string ip, int port)
         {
-            Console.WriteLine("Connecting (TCP) to server----\nIP: {0} ,  Port: {1}...", ip, port);
+            Console.WriteLine("CLIENT: Connecting (TCP) to server----\nIP: {0} ,  Port: {1}...", ip, port);
             tcpConnection.Connect(ip, port);
             hasFoundConnection = true;
             clientMode = TX_mode.ON;
