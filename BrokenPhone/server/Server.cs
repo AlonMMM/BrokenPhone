@@ -52,7 +52,7 @@ namespace BrokenPhone.server
             tcpKeepAliveThread.Start();
 
             //start listning UDP
-            EndPoint newClientEP = new IPEndPoint(IPAddress.Any, 6000);
+            EndPoint newClientEP = new IPEndPoint(IPAddress.Any, udpPort);
             udpListener.BeginReceiveFrom(udpBuffer, 0, udpBuffer.Length, SocketFlags.None, ref newClientEP, DoReceiveFrom, udpListener);
         }
 
