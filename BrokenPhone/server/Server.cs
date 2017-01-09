@@ -95,23 +95,28 @@ namespace BrokenPhone.server
 
         private void DoReceiveFrom(IAsyncResult ar)
         {
-            Console.WriteLine("SERVER: receives request...");
-
-            //Get the received "Request" message.
             Socket recvSock = (Socket)ar.AsyncState;
             EndPoint clientEP = new IPEndPoint(IPAddress.Any, 0);
+            if (serverMode == RX_mode.OFF)
+            {
+                Console.WriteLine("SERVER: receives request...");
 
-            int msgLen = recvSock.EndReceiveFrom(ar, ref clientEP);
+                //Get the received "Request" message.       
+                int msgLen = recvSock.EndReceiveFrom(ar, ref clientEP);
+                byte[] localMsg = new byte[msgLen];
+                Array.Copy(udpBuffer, localMsg, msgLen);
 
-            byte[] localMsg = new byte[msgLen];
-            Array.Copy(udpBuffer, localMsg, msgLen);
+                //start listening for a new "Request" message
+                EndPoint newClientEP = new IPEndPoint(IPAddress.Any, 0);
+                udpListener.BeginReceiveFrom(udpBuffer, 0, udpBuffer.Length, SocketFlags.None, ref newClientEP, DoReceiveFrom, udpListener);
 
-            //start listening for a new "Request" message
-            EndPoint newClientEP = new IPEndPoint(IPAddress.Any, 0);
-            udpListener.BeginReceiveFrom(udpBuffer, 0, udpBuffer.Length, SocketFlags.None, ref newClientEP, DoReceiveFrom, udpListener);
-
-            //send "Offer" message back           
-            sendOffer(localMsg, clientEP);
+                //send "Offer" message back           
+                sendOffer(localMsg, clientEP);
+            }
+            else
+            {
+                recvSock.EndReceiveFrom(ar, ref clientEP);
+            }
         }
 
         private void sendOffer(byte[] localMsg, EndPoint clientPoint)
