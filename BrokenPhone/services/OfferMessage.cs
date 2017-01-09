@@ -10,6 +10,7 @@ namespace BrokenPhone.services
     {
         private string ip;
         private int port;
+
         private short shortPort;
 
         public string Ip
@@ -22,7 +23,8 @@ namespace BrokenPhone.services
             get { return port; }
 
         }
-               
+
+
         public OfferMessage(string networking17, int uniqueNumber, string ip, int port)
             : base(networking17, uniqueNumber)
         {

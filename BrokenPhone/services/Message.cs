@@ -10,9 +10,7 @@ namespace BrokenPhone.services
     {
         protected string networking17;
         protected int uniqueNumber;
-
        
-
         public string Networking17
         {
             get { return networking17; }

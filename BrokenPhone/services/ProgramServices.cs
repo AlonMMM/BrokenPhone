@@ -10,6 +10,9 @@ namespace BrokenPhone
 {
     public static class ProgramServices
     {
+        public static readonly string MY_ID = "Networking17AMPM";
+        public static readonly int uniqueNumber = new Random().Next();
+
         public static IPAddress GetLocalIPAddress()
         {
             var host = Dns.GetHostEntry(Dns.GetHostName());
@@ -25,7 +28,7 @@ namespace BrokenPhone
 
         public static int findOpenPort(int min, int max)
         {
-            int myPort = min - 1;
+            int myPort = min;
             bool alreadyInUse = true;
             while (alreadyInUse && myPort < max + 1)
             {
@@ -33,6 +36,23 @@ namespace BrokenPhone
                 alreadyInUse = (from p in System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveUdpListeners() where p.Port == myPort select p).Count() == 1;
             }
             return myPort;
+        }
+
+        public static byte[] cleanUnusedBytes(byte[] byteArr)
+        {
+            List<byte> cleanedArr = new List<byte>();
+            for (int i = 0; i < byteArr.Length; i++)
+            {
+                if (byteArr[i] == 0)
+                    break;
+                cleanedArr.Add(byteArr[i]);
+            }
+            return cleanedArr.ToArray();
+        }
+
+        public static void log(string message)
+        {
+            Console.WriteLine(MY_ID + ": " + message);
         }
     }
 }
