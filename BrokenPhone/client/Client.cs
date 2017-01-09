@@ -24,7 +24,7 @@ namespace BrokenPhone.client
         private string clientMessage="00000000000000000000000000000000000000000000000000000000000000000000000";
         private string serverName = "CLIENT: I'm connected to server named: ";
 
-
+        private Semaphore messageSemaphore = new Semaphore(0,2);
         public enum TX_mode { ON, OFF };
         public TX_mode clientMode = TX_mode.OFF;
 
@@ -52,6 +52,7 @@ namespace BrokenPhone.client
             else
             {
                 clientMessage = changeOneCharacter(message).Trim();
+                messageSemaphore.Release();
             }
         }
 
@@ -137,15 +138,17 @@ namespace BrokenPhone.client
         {
             while (tcpConnection.Connected)
             {
+
                 ProgramServices.log(serverName);
                 string messageFromUser = "";
                 if (server.serverMode == Server.RX_mode.OFF)
                 {
+                    messageSemaphore.Release();
                     // Server module is NOT connected
                     ProgramServices.log("Please enter a message since my server module did not find a client: ");
                     messageFromUser = Console.ReadLine();
                 }
-
+                messageSemaphore.WaitOne();
                 // Encode the data string into a byte array.
                 string messageForTcpConnection = messageFromUser != "" ? messageFromUser : clientMessage;
                 byte[] msg = Encoding.ASCII.GetBytes(messageForTcpConnection);
@@ -153,9 +156,6 @@ namespace BrokenPhone.client
                 // Send the data through the socket.
                 int bytesSent = tcpConnection.Send(ProgramServices.cleanUnusedBytes(msg));
                 ProgramServices.log(clientMessage);
-                Thread.Sleep(200);
-
-            
             }
                 // Release the socket.
                 tcpConnection.Shutdown(SocketShutdown.Both);
