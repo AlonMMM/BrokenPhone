@@ -52,7 +52,7 @@ namespace BrokenPhone.client
             else
             {
                 clientMessage = changeOneCharacter(message).Trim();
-                messageSemaphore.Release();
+                messageSemaphore.Release();                     //release the thread which sleep inside the client send-message. there is a new message to handle!
             }
         }
 

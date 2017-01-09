@@ -37,3 +37,9 @@ C:\Users\amitp\Documents\לימודים\סמסטר ה\תקשורת\BrokenPhone\B
 C:\Users\amitp\Documents\לימודים\סמסטר ה\תקשורת\BrokenPhone\BrokenPhone\BrokenPhone\bin\Debug\BrokenPhone.exe
 C:\Users\amitp\Documents\לימודים\סמסטר ה\תקשורת\BrokenPhone\BrokenPhone\BrokenPhone\bin\Debug\BrokenPhone.pdb
 C:\Users\amitp\Documents\לימודים\סמסטר ה\תקשורת\BrokenPhone\BrokenPhone\BrokenPhone\obj\Debug\BrokenPhone.csprojResolveAssemblyReference.cache
+C:\Users\win7\Desktop\BrokenPhone\BrokenPhone\bin\Debug\BrokenPhone.exe.config
+C:\Users\win7\Desktop\BrokenPhone\BrokenPhone\obj\Debug\BrokenPhone.exe
+C:\Users\win7\Desktop\BrokenPhone\BrokenPhone\obj\Debug\BrokenPhone.pdb
+C:\Users\win7\Desktop\BrokenPhone\BrokenPhone\bin\Debug\BrokenPhone.exe
+C:\Users\win7\Desktop\BrokenPhone\BrokenPhone\bin\Debug\BrokenPhone.pdb
+C:\Users\win7\Desktop\BrokenPhone\BrokenPhone\obj\Debug\BrokenPhone.csprojResolveAssemblyReference.cache

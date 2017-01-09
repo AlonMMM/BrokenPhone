@@ -76,7 +76,9 @@ namespace BrokenPhone.server
                 {
                     ProgramServices.log("SERVER: Reading message from TCP connection...");
                     // An incoming connection needs to be processed.
-                    handler.Receive(brokenPhoneMessage);
+                    byte[] newMessage = new byte[1024];
+                    handler.Receive(newMessage);
+                    brokenPhoneMessage = newMessage;
                     data = Encoding.ASCII.GetString(ProgramServices.cleanUnusedBytes(brokenPhoneMessage));
                     client.handleMessageFromServerModule(data);
                 }
