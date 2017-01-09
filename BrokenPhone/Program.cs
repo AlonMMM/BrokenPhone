@@ -21,7 +21,6 @@ namespace BrokenPhone
             Client client = new Client();
             server.setClient(client);
             client.setServer(server);
-
             server.startListening();
             client.broadcost();
             Console.ReadKey();

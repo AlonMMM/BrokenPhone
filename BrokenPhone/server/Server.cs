@@ -60,48 +60,37 @@ namespace BrokenPhone.server
         private void listenAndHandleTCPconnection()
         {     
             IPEndPoint ipEndPoint = new IPEndPoint(localIP, tcpPort);
+            Socket handler = null;
             Console.WriteLine("SERVER: start Listing for TCP connection...");
             try
             {
                 tcpConnection.Bind(ipEndPoint);
                 tcpConnection.Listen(1);
-
-                // Starts listening for TCP connections.
-                while (true)
+                Console.WriteLine("SERVER: Waiting for a TCP connection...");
+                // Thread is suspended while waiting for an incoming connection from client
+                handler = tcpConnection.Accept();
+                hasFoundTcpConnection = true;
+                serverMode = RX_mode.ON;
+                while (handler.Connected)
                 {
-                    Console.WriteLine("SERVER: Waiting for a TCP connection...");
-                    // Thread is suspended while waiting for an incoming connection from client
-                    Socket handler = tcpConnection.Accept();
-                    data = null;
-                    hasFoundTcpConnection = true;
-                    serverMode = RX_mode.ON;
-
                     // An incoming connection needs to be processed.
                     handler.Receive(brokenPhoneMessage);
-                    data = Encoding.ASCII.GetString(brokenPhoneMessage);            
-                    client.handleMessageFromServerModule(changeOneCharacter(data));
-                    handler.Shutdown(SocketShutdown.Both);
-                    handler.Close();
+                    data = Encoding.ASCII.GetString(brokenPhoneMessage);
+                    client.handleMessageFromServerModule(data);
                 }
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.ToString());
             }
-        }
-
-        // Changes one character in the message
-        private string changeOneCharacter(string msg)
-        {
-            string stringMessage = msg.Trim();
-            Random random = new Random();
-            int randomIndex = random.Next(stringMessage.Length);
-            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            string randomChar = new string(Enumerable.Repeat(chars, 1)
-              .Select(s => s[random.Next(s.Length)]).ToArray());
-            char[] charArrayMessage = stringMessage.ToCharArray();
-            charArrayMessage[randomIndex] = Convert.ToChar(randomChar);
-            return new string(charArrayMessage);
+            finally
+            {
+                if (handler != null)
+                {
+                    handler.Shutdown(SocketShutdown.Both);
+                    handler.Close();
+                }
+            }
         }
 
         private void DoReceiveFrom(IAsyncResult ar)

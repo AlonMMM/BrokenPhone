@@ -10,7 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace BrokenPhone.client
-{
+{ 
     public class Client
     {
         private Socket udpBroadcast;
@@ -49,7 +49,7 @@ namespace BrokenPhone.client
             }
             else
             {
-                clientMessage = message;
+                clientMessage = changeOneCharacter(message);
             }
         }
 
@@ -66,6 +66,7 @@ namespace BrokenPhone.client
             {
                 while (!hasFoundConnection && server.serverMode==Server.RX_mode.OFF)
                 {
+                    // TO_DO: ADD GLOBAL MUTEX (?)
                     Console.WriteLine("CLIENT: UDP Broadcast message number {0}", broadCounter);
                     udpBroadcast.SendTo(messageAsByteArray, ipEndPoint);
                     broadCounter++;
@@ -97,12 +98,11 @@ namespace BrokenPhone.client
                     recvSock.EndReceiveFrom(ar, ref serverEP);
 
                     //Make TCP connection
-                    if (!connectTCP(offerMessage.Ip, offerMessage.Port, clientMessage))
+                    if (!connectTCP(offerMessage.Ip, offerMessage.Port))
                     {
                         throw new Exception("CLIENT: The server is busy or not available... ");
                     }
-                    hasFoundConnection = true;
-                    clientMode = TX_mode.ON;
+                   
                 }
                 catch (Exception expection)
                 {
@@ -116,36 +116,43 @@ namespace BrokenPhone.client
             }
         }
 
-        private bool connectTCP(string ip, int port, string message)
+        private bool connectTCP(string ip, int port)
         {
             Console.WriteLine("Connecting (TCP) to server----\nIP: {0} ,  Port: {1}...", ip, port);
             tcpConnection.Connect(ip, port);
-            tcpConnection.RemoteEndPoint.ToString();
-            string messageFromUser = "";
-            if(server.serverMode == Server.RX_mode.OFF)
-            {
-                // Server module is NOT connected
-                Console.WriteLine("Please enter a message since my server module did not find a client: ");
-                messageFromUser = Console.ReadLine();
-            }
+            hasFoundConnection = true;
+            clientMode = TX_mode.ON;
+            //tcpConnection.RemoteEndPoint.ToString();
 
-            // Encode the data string into a byte array.
-            string messageForTcpConnection = messageFromUser != "" ? messageFromUser : clientMessage;
-            byte[] msg = Encoding.ASCII.GetBytes(messageForTcpConnection);
+            Thread sendMessageThred = new Thread(sendMessageToRemoteServer);
+            sendMessageThred.Start();
 
-            // Send the data through the socket.
-            int bytesSent = tcpConnection.Send(msg);
-
-            //// Receive the response from the remote device.
-            //byte[] recieveFromServer = new byte[1024];
-            //int bytesRec = tcpConnection.Receive(recieveFromServer);
-            //Console.WriteLine("Echoed test = {0}", Encoding.ASCII.GetString(recieveFromServer, 0, bytesRec));
-
-            // Release the socket.
-            tcpConnection.Shutdown(SocketShutdown.Both);
-            tcpConnection.Close();
-            Console.WriteLine("Connection was made");
             return true;
+        }
+
+        private void sendMessageToRemoteServer()
+        {
+            while (tcpConnection.Connected)
+            {
+                string messageFromUser = "";
+                if (server.serverMode == Server.RX_mode.OFF)
+                {
+                    // Server module is NOT connected
+                    Console.WriteLine("Please enter a message since my server module did not find a client: ");
+                    messageFromUser = Console.ReadLine();
+                }
+
+                // Encode the data string into a byte array.
+                string messageForTcpConnection = messageFromUser != "" ? messageFromUser : clientMessage;
+                byte[] msg = Encoding.ASCII.GetBytes(messageForTcpConnection);
+
+                // Send the data through the socket.
+                int bytesSent = tcpConnection.Send(msg);
+
+            }
+                // Release the socket.
+                tcpConnection.Shutdown(SocketShutdown.Both);
+                tcpConnection.Close();
         }
 
 
@@ -158,6 +165,20 @@ namespace BrokenPhone.client
             int randomNumber = random.Next();
             messageByteList.AddRange(BitConverter.GetBytes(randomNumber).ToList());
             return messageByteList.ToArray();
+        }
+
+        // Changes one character in the message
+        private string changeOneCharacter(string msg)
+        {
+            string stringMessage = msg.Trim();
+            Random random = new Random();
+            int randomIndex = random.Next(stringMessage.Length);
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            string randomChar = new string(Enumerable.Repeat(chars, 1)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
+            char[] charArrayMessage = stringMessage.ToCharArray();
+            charArrayMessage[randomIndex] = Convert.ToChar(randomChar);
+            return new string(charArrayMessage);
         }
 
     }
