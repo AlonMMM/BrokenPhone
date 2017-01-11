@@ -21,10 +21,11 @@ namespace BrokenPhone.client
         private byte[] udpBuffer;
         private int port;
         private readonly string myID = "Networking17AMPM";
-        private string clientMessage="00000000000000000000000000000000000000000000000000000000000000000000000";
+        private string clientMessage="";
         private string serverName = "CLIENT: I'm connected to server named: ";
+        private Queue<string> messagesFromServerModule;
+        private Semaphore messageSemaphore = new Semaphore(0, Int32.MaxValue);
 
-        private Semaphore messageSemaphore = new Semaphore(0,2);
         public enum TX_mode { ON, OFF };
         public TX_mode clientMode = TX_mode.OFF;
 
@@ -34,6 +35,7 @@ namespace BrokenPhone.client
             tcpConnection = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             hasFoundConnection = false;
             udpBuffer = new byte[26];
+            messagesFromServerModule = new Queue<string>();
         }
 
         //inject the server to the client
@@ -52,7 +54,8 @@ namespace BrokenPhone.client
             else
             {
                 clientMessage = changeOneCharacter(message).Trim();
-                messageSemaphore.Release();                     //release the thread which sleep inside the client send-message. there is a new message to handle!
+                messagesFromServerModule.Enqueue(clientMessage);
+                messageSemaphore.Release();  //release the thread which sleep inside the client send-message. there is a new message to handle.
             }
         }
 
@@ -136,25 +139,41 @@ namespace BrokenPhone.client
 
         private void sendMessageToRemoteServer()
         {
+            Thread.Sleep(5000); // give a chance for our server module to be connected to another client
             while (tcpConnection.Connected)
             {
                 ProgramServices.log(serverName);
                 string messageFromUser = "";
-                if (server.serverMode == Server.RX_mode.OFF)
+                getMessageFromUser:                
+                try
                 {
-                    messageSemaphore.Release();
-                    // Server module is NOT connected
-                    ProgramServices.log("Please enter a message since my server module did not find a client: ");
-                    messageFromUser = Console.ReadLine();
+                    if (server.serverMode == Server.RX_mode.OFF)
+                    {
+                        // Server module is NOT connected
+                        ProgramServices.log("Please enter a message since my server module did not find a client: ");
+                        messageFromUser = Reader.ReadLine(5000); // give the user 5 seconds to enter message
+                        messageSemaphore.Release();
+                    }
                 }
+                catch (TimeoutException e)
+                {
+                    // if the server module still did not connect to a server, try to get a message from the user again.                
+                    if (server.serverMode == Server.RX_mode.OFF)
+                        goto getMessageFromUser;
+                }
+
+                // here the Thread will sleep if there are no messages in the messagesFromServerModule Queue.
+                // the Thread would wake up only after another messages has been received and enqueued 
+                // meaning handleMessageFromServerModule has been called from server module)
                 messageSemaphore.WaitOne();
+                 
                 // Encode the data string into a byte array.
-                string messageForTcpConnection = messageFromUser != "" ? messageFromUser : clientMessage;
+                string messageForTcpConnection = messageFromUser != "" ? messageFromUser : messagesFromServerModule.Dequeue();
                 byte[] msg = Encoding.ASCII.GetBytes(messageForTcpConnection);
 
                 // Send the data through the socket.
                 int bytesSent = tcpConnection.Send(ProgramServices.cleanUnusedBytes(msg));
-                ProgramServices.log(clientMessage);
+                //ProgramServices.log(clientMessage);
             }
                 // Release the socket.
                 tcpConnection.Shutdown(SocketShutdown.Both);

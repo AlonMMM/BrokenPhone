@@ -48,6 +48,7 @@
     <Compile Include="services\ProgramServices.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="server\Server.cs" />
+    <Compile Include="services\Reader.cs" />
     <Compile Include="services\RequestMessage.cs" />
   </ItemGroup>
   <ItemGroup>
