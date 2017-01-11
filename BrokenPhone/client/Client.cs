@@ -138,7 +138,6 @@ namespace BrokenPhone.client
         {
             while (tcpConnection.Connected)
             {
-
                 ProgramServices.log(serverName);
                 string messageFromUser = "";
                 if (server.serverMode == Server.RX_mode.OFF)

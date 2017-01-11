@@ -103,8 +103,6 @@ namespace BrokenPhone.server
             EndPoint clientEP = new IPEndPoint(IPAddress.Any, 0);
             if (serverMode == RX_mode.OFF)
             {
-                ProgramServices.log("SERVER: receives request...");
-
                 //Get the received "Request" message.       
                 int msgLen = recvSock.EndReceiveFrom(ar, ref clientEP);
 
@@ -112,6 +110,7 @@ namespace BrokenPhone.server
                 IPEndPoint remoteIpEndPoint = clientEP as IPEndPoint;
                 if (remoteIpEndPoint.Address.ToString() != ProgramServices.GetLocalIPAddress().ToString())
                 {
+                    ProgramServices.log("SERVER: receives request...");
                     byte[] localMsg = new byte[msgLen];
                     Array.Copy(udpBuffer, localMsg, msgLen);
                     //send "Offer" message back           
