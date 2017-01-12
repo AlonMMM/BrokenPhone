@@ -27,7 +27,7 @@ namespace BrokenPhone.server
         public static string data;
         public enum RX_mode { ON, OFF };
         public RX_mode serverMode = RX_mode.OFF;
-        private string clientName = "I'm connected to client named: ";
+        private string clientName = "";
 
         public Server()
         {
@@ -99,30 +99,38 @@ namespace BrokenPhone.server
 
         private void DoReceiveFrom(IAsyncResult ar)
         {
-            Socket recvSock = (Socket)ar.AsyncState;
-            EndPoint clientEP = new IPEndPoint(IPAddress.Any, 0);
-            if (serverMode == RX_mode.OFF)
+            try
             {
-                //Get the received "Request" message.       
-                int msgLen = recvSock.EndReceiveFrom(ar, ref clientEP);
-
-                //Check it's not a message from ourself
-                IPEndPoint remoteIpEndPoint = clientEP as IPEndPoint;
-                if (remoteIpEndPoint.Address.ToString() != ProgramServices.GetLocalIPAddress().ToString())
+                Socket recvSock = (Socket)ar.AsyncState;
+                EndPoint clientEP = new IPEndPoint(IPAddress.Any, 0);
+                if (serverMode == RX_mode.OFF)
                 {
-                    ProgramServices.log("SERVER: receives request...");
-                    byte[] localMsg = new byte[msgLen];
-                    Array.Copy(udpBuffer, localMsg, msgLen);
-                    //send "Offer" message back           
-                    sendOffer(localMsg, clientEP);
-                    //start listening for a new "Request" message
+                    //Get the received "Request" message.       
+                    int msgLen = recvSock.EndReceiveFrom(ar, ref clientEP);
+
+                    //Check it's not a message from ourself
+                    IPEndPoint remoteIpEndPoint = clientEP as IPEndPoint;
+                    if (remoteIpEndPoint.Address.ToString() != ProgramServices.GetLocalIPAddress().ToString())
+                    {
+                        ProgramServices.log("SERVER: receives request...");
+                        byte[] localMsg = new byte[msgLen];
+                        Array.Copy(udpBuffer, localMsg, msgLen);
+                        //send "Offer" message back           
+                        sendOffer(localMsg, clientEP);
+                        //start listening for a new "Request" message
+                    }
+                    EndPoint newClientEP = new IPEndPoint(IPAddress.Any, 0);
+                    udpListener.BeginReceiveFrom(udpBuffer, 0, udpBuffer.Length, SocketFlags.None, ref newClientEP, DoReceiveFrom, udpListener);
                 }
+                else
+                {
+                    recvSock.EndReceiveFrom(ar, ref clientEP);
+                }
+            }
+            catch (Exception e)
+            {
                 EndPoint newClientEP = new IPEndPoint(IPAddress.Any, 0);
                 udpListener.BeginReceiveFrom(udpBuffer, 0, udpBuffer.Length, SocketFlags.None, ref newClientEP, DoReceiveFrom, udpListener);
-            }
-            else
-            {
-                recvSock.EndReceiveFrom(ar, ref clientEP);
             }
         }
 
@@ -145,7 +153,8 @@ namespace BrokenPhone.server
             toSendByteAsList.AddRange(BitConverter.GetBytes(shotrPort).ToList());
 
             //send it
-            ProgramServices.log(string.Format("SERVER: sends offer message to {0}", ProgramServices.uniqueNumber));
+            clientName = System.Text.Encoding.Default.GetString(localMsg, 0, 16);
+            ProgramServices.log(string.Format("SERVER: sends offer message to {0}", clientName));
             udpListener.SendTo(toSendByteAsList.ToArray(), clientPoint);
 
         }

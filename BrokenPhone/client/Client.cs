@@ -151,7 +151,7 @@ namespace BrokenPhone.client
                     {
                         // Server module is NOT connected
                         ProgramServices.log("Please enter a message since my server module did not find a client: ");
-                        messageFromUser = Reader.ReadLine(5000); // give the user 5 seconds to enter message
+                        messageFromUser = Reader.ReadLine(10000); // give the user 10 seconds to enter message
                         messageSemaphore.Release();
                     }
                 }
