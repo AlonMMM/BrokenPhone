@@ -22,20 +22,7 @@ namespace BrokenPhone
             server.setClient(client);
             client.setServer(server);
             server.startListening();
-            client.broadcost();
-            Console.ReadKey();
-        }
-
-        private static void testServer()
-        {
-            udpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            IPEndPoint ipEndPoint = new IPEndPoint(GetLocalIPAddress(), 6000);
-            IPEndPoint ipStartPoint = new IPEndPoint(GetLocalIPAddress(), 6001);
-            udpSocket.Bind(ipStartPoint);
-            string message = "Networking17AMPM" + Int32.MaxValue;
-            byte[] messageAsByteArray = Encoding.ASCII.GetBytes(message);
-            udpSocket.SendTo(messageAsByteArray, ipEndPoint);
-            Console.ReadKey();
+            client.startBroadcosting();
         }
 
         private static IPAddress GetLocalIPAddress()
@@ -49,20 +36,6 @@ namespace BrokenPhone
                 }
             }
             throw new Exception("Local IP Address Not Found!");
-        }
-
-        private static void testRandomChar()
-        {
-                Random random = new Random();
-                const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-                string randomChar = new string(Enumerable.Repeat(chars, 1)
-                  .Select(s => s[random.Next(s.Length)]).ToArray());
-                string stringMessage = "hello";
-                int randomIndex = random.Next(stringMessage.Length);
-                char[] charArrayMessage = stringMessage.ToCharArray();
-                charArrayMessage[randomIndex] = Convert.ToChar(randomChar);
-                string changedString = new string(charArrayMessage);
-                Console.WriteLine(changedString);
         }
     }
 }

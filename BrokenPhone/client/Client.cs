@@ -10,7 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace BrokenPhone.client
-{ 
+{
     public class Client
     {
         private Socket udpBroadcast;
@@ -19,12 +19,11 @@ namespace BrokenPhone.client
         private readonly int udpPort = 6000;
         private bool hasFoundConnection;
         private byte[] udpBuffer;
-        private int port;
-        private readonly string myID = "Networking17AMPM";
-        private string clientMessage="";
+        private string clientMessage = "";
         private string serverName = "CLIENT: I'm connected to server named: ";
         private Queue<string> messagesFromServerModule;
         private Semaphore messageSemaphore = new Semaphore(0, Int32.MaxValue);
+        private Thread broadcastThread;
 
         public enum TX_mode { ON, OFF };
         public TX_mode clientMode = TX_mode.OFF;
@@ -44,6 +43,8 @@ namespace BrokenPhone.client
             this.server = server;
         }
 
+        public Thread getBroadcastThread() { return broadcastThread; }
+
         public void handleMessageFromServerModule(string message)
         {
             if (clientMode == TX_mode.OFF)
@@ -59,35 +60,47 @@ namespace BrokenPhone.client
             }
         }
 
-        public void broadcost()
+        public void startBroadcosting()
         {
             ProgramServices.log("CLIENT: starts broadcasting in UDP...");
             udpBroadcast.EnableBroadcast = true;
             byte[] messageAsByteArray = createByteMessage();
             IPEndPoint ipEndPoint = new IPEndPoint(IPAddress.Broadcast, udpPort);
             udpBroadcast.Bind(new IPEndPoint(ProgramServices.GetLocalIPAddress(), ProgramServices.findOpenPort(5000, 6000)));
-            int broadCounter = 1;
-            //Broadcast "Request" messages
-            new Thread(delegate ()
-            {
-                while (!hasFoundConnection && server.serverMode==Server.RX_mode.OFF)
-                {
-                    // TO_DO: ADD GLOBAL MUTEX (?)
-                    ProgramServices.log(string.Format("CLIENT: UDP Broadcast message number {0}", broadCounter));
-                    udpBroadcast.SendTo(messageAsByteArray, ipEndPoint);
-                    broadCounter++;
-                    Thread.Sleep(1000);
-                }
-            }).Start();
+
+            //start broadcosting Thread
+            broadcastThread = new Thread(() => broadcost(messageAsByteArray, ipEndPoint));
+            broadcastThread.Start();
 
             //Listen if any "Offer" come back
             EndPoint newClientEP = new IPEndPoint(IPAddress.Any, 0);
             udpBroadcast.BeginReceiveFrom(udpBuffer, 0, udpBuffer.Length, SocketFlags.None, ref newClientEP, getOfferMessage, udpBroadcast);
         }
 
+        private void broadcost(byte[] messageAsByteArray, IPEndPoint ipEndPoint)
+        {
+            int broadCounter = 1;
+            //Broadcast "Request" messages
+            try
+            {
+                while (!hasFoundConnection && server.serverMode == Server.RX_mode.OFF)
+                {
+                    ProgramServices.log(string.Format("CLIENT: UDP Broadcast message number {0}", broadCounter));
+                    udpBroadcast.SendTo(messageAsByteArray, ipEndPoint);
+                    broadCounter++;
+                    Thread.Sleep(1000);
+                }
+            }
+            catch (ThreadAbortException e)
+            {
+                ProgramServices.log("CLIENT: broadcosting finished because my server module connected to a client");
+                udpBroadcast.Dispose();
+            }
+        }
+
         private void getOfferMessage(IAsyncResult ar)
         {
-            if (!hasFoundConnection)
+            if (!hasFoundConnection && server.serverMode == Server.RX_mode.OFF)
             {
                 ProgramServices.log("CLIENT: received offer in UDP... ");
                 try
@@ -108,7 +121,7 @@ namespace BrokenPhone.client
                     {
                         throw new Exception("CLIENT: The server is busy or not available... ");
                     }
-                   
+
                 }
                 catch (Exception expection)
                 {
@@ -129,8 +142,7 @@ namespace BrokenPhone.client
             hasFoundConnection = true;
             clientMode = TX_mode.ON;
             serverName = serverName + msg.Networking17;
-            //tcpConnection.RemoteEndPoint.ToString();
-
+            
             Thread sendMessageThred = new Thread(sendMessageToRemoteServer);
             sendMessageThred.Start();
 
@@ -139,18 +151,18 @@ namespace BrokenPhone.client
 
         private void sendMessageToRemoteServer()
         {
-            Thread.Sleep(5000); // give a chance for our server module to be connected to another client
+            Thread.Sleep(1000); // give a chance for our server module to be connected to another client
             while (tcpConnection.Connected)
             {
                 ProgramServices.log(serverName);
                 string messageFromUser = "";
-                getMessageFromUser:                
+            getMessageFromUser:
                 try
                 {
                     if (server.serverMode == Server.RX_mode.OFF)
                     {
                         // Server module is NOT connected
-                        ProgramServices.log("Please enter a message since my server module did not find a client: ");
+                        ProgramServices.log("CLIENT: Please enter a message since my server module did not find a client:");
                         messageFromUser = Reader.ReadLine(10000); // give the user 10 seconds to enter message
                         messageSemaphore.Release();
                     }
@@ -166,18 +178,18 @@ namespace BrokenPhone.client
                 // the Thread would wake up only after another messages has been received and enqueued 
                 // meaning handleMessageFromServerModule has been called from server module)
                 messageSemaphore.WaitOne();
-                 
+
                 // Encode the data string into a byte array.
                 string messageForTcpConnection = messageFromUser != "" ? messageFromUser : messagesFromServerModule.Dequeue();
                 byte[] msg = Encoding.ASCII.GetBytes(messageForTcpConnection);
 
                 // Send the data through the socket.
                 int bytesSent = tcpConnection.Send(ProgramServices.cleanUnusedBytes(msg));
-                //ProgramServices.log(clientMessage);
+
             }
-                // Release the socket.
-                tcpConnection.Shutdown(SocketShutdown.Both);
-                tcpConnection.Close();
+            // Release the socket.
+            tcpConnection.Shutdown(SocketShutdown.Both);
+            tcpConnection.Close();
         }
 
 
@@ -185,7 +197,7 @@ namespace BrokenPhone.client
         private byte[] createByteMessage()
         {
             List<byte> messageByteList = new List<byte>();
-            messageByteList.AddRange(Encoding.ASCII.GetBytes(myID).ToList());
+            messageByteList.AddRange(Encoding.ASCII.GetBytes(ProgramServices.MY_ID).ToList());
             messageByteList.AddRange(BitConverter.GetBytes(ProgramServices.uniqueNumber).ToList());
             return messageByteList.ToArray();
         }

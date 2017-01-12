@@ -59,7 +59,7 @@ namespace BrokenPhone.server
 
         //Listening for client connection in TCP
         private void listenAndHandleTCPconnection()
-        {     
+        {
             IPEndPoint ipEndPoint = new IPEndPoint(localIP, tcpPort);
             Socket handler = null;
             ProgramServices.log("SERVER: start Listing for TCP connection...");
@@ -72,9 +72,10 @@ namespace BrokenPhone.server
                 handler = tcpConnection.Accept();
                 hasFoundTcpConnection = true;
                 serverMode = RX_mode.ON;
+                client.getBroadcastThread().Abort();
                 while (handler.Connected)
                 {
-                    ProgramServices.log("SERVER: Reading message from TCP connection...");
+                    ProgramServices.log(string.Format("SERVER: Reading message from {0} TCP connection...", clientName));
                     // An incoming connection needs to be processed.
                     byte[] newMessage = new byte[1024];
                     handler.Receive(newMessage);
@@ -156,9 +157,7 @@ namespace BrokenPhone.server
             clientName = System.Text.Encoding.Default.GetString(localMsg, 0, 16);
             ProgramServices.log(string.Format("SERVER: sends offer message to {0}", clientName));
             udpListener.SendTo(toSendByteAsList.ToArray(), clientPoint);
-
         }
-
 
     }
 }
